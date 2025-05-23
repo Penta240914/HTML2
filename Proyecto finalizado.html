@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Seguimiento de Proyectos</title>
+    <style>
+        :root {
+            --bg: #f9fafb;
+            --primary: #2563eb;
+            --text: #111827;
+            --gray: #6b7280;
+            --light: #e5e7eb;
+        }
+
+        body.dark {
+            --bg: #1f2937;
+            --text: #f9fafb;
+            --gray: #9ca3af;
+            --light: #374151;
+            --primary: #3b82f6;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary);
+        }
+
+        input {
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid var(--light);
+            border-radius: 8px;
+            width: 200px;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background-color: #1d4ed8;
+        }
+
+        .proyecto {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+
+        body.dark .proyecto {
+            background: #111827;
+        }
+
+        .tarea {
+            background: var(--bg);
+            border-left: 4px solid var(--light);
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 8px;
+        }
+
+        .alta {
+            border-left-color: #ef4444;
+        }
+
+        .media {
+            border-left-color: #f59e0b;
+        }
+
+        .baja {
+            border-left-color: #10b981;
+        }
+
+        .vencida {
+            background-color: #fee2e2;
+        }
+
+        .por-vencer {
+            background-color: #fef9c3;
+        }
+
+        body.dark .vencida {
+            background-color: #7f1d1d;
+        }
+
+        body.dark .por-vencer {
+            background-color: #78350f;
+        }
+
+        .comentarios {
+            font-size: 0.9em;
+            color: var(--gray);
+            margin-top: 8px;
+            padding-left: 10px;
+            border-left: 2px solid var(--light);
+        }
+
+        .stats {
+            font-weight: 500;
+            color: var(--gray);
+            margin: 10px 0;
+        }
+
+        footer {
+            margin-top: 40px;
+            padding: 20px;
+            border-top: 1px solid var(--light);
+            text-align: center;
+            font-size: 0.95em;
+        }
+
+        footer input {
+            width: 250px;
+            margin: 10px;
+        }
+
+        .completada {
+            color: green;
+            font-weight: bold;
+        }
+
+        .completada:before {
+            content: "✅ ";
+        }
+    </style>
+</head>
+
+<body>
+    <h1>📌 Sistema de Seguimiento de Proyectos</h1>
+
+    <button onclick="toggleModo()" title="Alternar modo claro/oscuro">🌞🌙</button>
+    <br>
+    <input id="nuevoProyecto" placeholder="Nuevo proyecto" />
+    <button onclick="agregarProyecto()">Agregar Proyecto</button>
+
+    <div id="proyectos"></div>
+
+    <footer>
+        <h3>📬 Contacto</h3>
+        <p>¿Tienes preguntas o sugerencias? Escríbenos a:</p>
+        <form onsubmit="enviarCorreo(event)">
+            <input type="email" id="emailContacto" placeholder="Tu correo" required />
+            <input type="text" id="mensajeContacto" placeholder="Tu mensaje" required />
+            <button type="submit">Enviar</button>
+        </form>
+        <p id="confirmacionCorreo" style="color: var(--gray);"></p>
+    </footer>
+
+    <script>
+        let proyectos = JSON.parse(localStorage.getItem('proyectos')) || [];
+        let modoOscuro = localStorage.getItem('modoOscuro') === 'true';
+
+        function guardar() {
+            localStorage.setItem('proyectos', JSON.stringify(proyectos));
+        }
+
+        function guardarModo() {
+            localStorage.setItem('modoOscuro', document.body.classList.contains('dark'));
+        }
+
+        function toggleModo() {
+            document.body.classList.toggle('dark');
+            guardarModo();
+        }
+
+        function agregarProyecto() {
+            const nombre = document.getElementById('nuevoProyecto').value;
+            if (!nombre) return;
+            proyectos.push({ nombre, tareas: [] });
+            guardar();
+            render();
+            document.getElementById('nuevoProyecto').value = ''; // Limpiar campo
+        }
+
+        function agregarTarea(index) {
+            const titulo = prompt("Título de la tarea:");
+            const prioridad = prompt("Prioridad (alta, media, baja):", "media");
+            const fechaVencimiento = prompt("Fecha de vencimiento (YYYY-MM-DD):");
+            const responsable = prompt("Responsable:");
+            if (!titulo) return;
+            proyectos[index].tareas.push({
+                titulo,
+                completada: false,
+                comentarios: [],
+                prioridad,
+                fechaVencimiento,
+                responsable,
+                fechaCompletada: null,
+                archivos: []
+            });
+            guardar();
+            render();
+        }
+
+        function marcarCompletada(i, j) {
+            proyectos[i].tareas[j].completada = true;
+            proyectos[i].tareas[j].fechaCompletada = new Date().toISOString().split('T')[0];
+            guardar();
+            render();
+        }
+
+        function marcarPendiente(i, j) {
+            proyectos[i].tareas[j].completada = false;
+            proyectos[i].tareas[j].fechaCompletada = null;
+            guardar();
+            render();
+        }
+
+        function agregarComentario(i, j) {
+            const mensaje = prompt("Comentario:");
+            const autor = prompt("Autor del comentario:");
+            if (!mensaje || !autor) return;
+            proyectos[i].tareas[j].comentarios.push({ autor, mensaje, fecha: new Date().toISOString().split('T')[0] });
+            guardar();
+            render();
+        }
+
+        function manejarArchivo(i, j, archivo) {
+            proyectos[i].tareas[j].archivos.push(archivo);
+            guardar();
+            render();
+        }
+
+        function obtenerEstadisticas(tareas) {
+            const total = tareas.length;
+            const completadas = tareas.filter(t => t.completada).length;
+            return `Total: ${total}, Completadas: ${completadas}, Pendientes: ${total - completadas}`;
+        }
+
+        function render() {
+            const cont = document.getElementById('proyectos');
+            cont.innerHTML = '';
+            proyectos.forEach((proy, i) => {
+                const div = document.createElement('div');
+                div.className = 'proyecto';
+                div.innerHTML = `
+          <h3>${proy.nombre}</h3>
+          <button onclick="agregarTarea(${i})">➕ Agregar tarea</button>
+          <p class="stats">🔧 ${obtenerEstadisticas(proy.tareas)}</p>
+        `;
+
+                const tareasOrdenadas = [...proy.tareas].sort((a, b) => {
+                    const p = { alta: 1, media: 2, baja: 3 };
+                    return p[a.prioridad] - p[b.prioridad];
+                });
+
+                tareasOrdenadas.forEach((tarea, j) => {
+                    const tareaDiv = document.createElement('div');
+                    const hoy = new Date();
+                    const vencimiento = new Date(tarea.fechaVencimiento);
+                    const diff = (vencimiento - hoy) / (1000 * 60 * 60 * 24);
+                    let claseVenc = '';
+                    if (diff < 0) claseVenc = 'vencida';
+                    else if (diff <= 2) claseVenc = 'por-vencer';
+
+                    tareaDiv.className = `tarea ${tarea.prioridad} ${claseVenc}`;
+                    tareaDiv.innerHTML = `
+            <p><strong>${tarea.titulo}</strong> [${tarea.responsable}]<br>
+              Prioridad: ${tarea.prioridad} | Vence: ${tarea.fechaVencimiento}</p>
+            <p>Estado: ${tarea.completada ? '✅ Completada' : '🕒 Pendiente'}</p>
+            ${tarea.fechaCompletada ? `<p>📅 Completado el: ${tarea.fechaCompletada}</p>` : ''}
+            ${!tarea.completada
+                            ? `<button onclick="marcarCompletada(${i}, ${j})">✔ Marcar completada</button>`
+                            : `<button onclick="marcarPendiente(${i}, ${j})">❌ Marcar como pendiente</button>`}
+            <button onclick="agregarComentario(${i}, ${j})">🗨️ Agregar comentario</button>
+            <input type="file" onchange="manejarArchivo(${i}, ${j}, this.files[0])" />
+            <div class="comentarios">
+              ${tarea.comentarios.map(c => `<p><em>${c.fecha} - ${c.autor}:</em> ${c.mensaje}</p>`).join('')}
+            </div>
+            <div class="archivos">
+              ${tarea.archivos.length > 0 ?
+                            tarea.archivos.map(f => `
+                  <p><a href="${URL.createObjectURL(f)}" download="${f.name}">${f.name}</a></p>
+                `).join('') : 'No hay archivos cargados.'}
+            </div>
+          `;
+                    div.appendChild(tareaDiv);
+                });
+
+                cont.appendChild(div);
+            });
+        }
+
+        function enviarCorreo(event) {
+            event.preventDefault();
+            const email = document.getElementById('emailContacto').value;
+            const mensaje = document.getElementById('mensajeContacto').value;
+            document.getElementById('confirmacionCorreo').textContent = `Gracias por tu mensaje, te responderemos a ${email}`;
+            document.getElementById('emailContacto').value = '';
+            document.getElementById('mensajeContacto').value = '';
+        }
+
+        if (modoOscuro) document.body.classList.add('dark');
+        render();
+    </script>
+</body>
+
+</html>
